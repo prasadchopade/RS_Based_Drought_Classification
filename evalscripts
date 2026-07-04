@@ -1,0 +1,108 @@
+ndvi new
+evalscript = """
+//VERSION=3
+function setup() {
+  return {
+    input: [
+      {
+        bands: ["B04", "B08"],
+      },
+    ],
+    output: {
+      id: "default",
+      bands: 3,
+    },
+  }
+}
+
+function evaluatePixel(sample) {
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+
+  if (ndvi < -0.941) return [0.47, 0.00, 0.00];       // #770000
+  else if (ndvi < -0.824) return [0.53, 0.00, 0.00];  // #880000
+  else if (ndvi < -0.706) return [0.6, 0.00, 0.00];   // #990000
+  else if (ndvi < -0.588) return [0.67, 0.00, 0.00];  // #AA0000
+  else if (ndvi < -0.471) return [0.73, 0.00, 0.00];  // #BB0000
+  else if (ndvi < -0.353) return [0.8, 0.00, 0.00];   // #CC0000
+  else if (ndvi < -0.235) return [0.87, 0.00, 0.00];  // #DD0000
+  else if (ndvi < -0.118) return [0.93, 0.00, 0.00];  // #EE0000
+  else if (ndvi < 0.0) return [1.0, 0.00, 0.00];      // #FF0000
+  else if (ndvi < 0.118) return [1.0, 0.00, 0.00];    // #FF0000
+  else if (ndvi < 0.235) return [1.0, 0.00, 0.00];    // #FF0000
+  else if (ndvi < 0.353) return [1.0, 0.8, 0.00];     // #FFCC00
+  else if (ndvi < 0.471) return [1.0, 1.0, 0.00];     // #FFFF00
+  else if (ndvi < 0.588) return [0.0, 1.0, 0.00];     // #00FF00
+  else if (ndvi < 0.706) return [0.0, 0.53, 0.00];    // #008800
+  else if (ndvi < 0.824) return [0.0, 0.4, 0.00];     // #006600
+  else return [0.0, 0.4, 0.00];                       // #006600
+}
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+savi new
+
+// Soil Adjusted Vegetation Index  (abbrv. SAVI)
+// General formula: (800nm - 670nm) / (800nm + 670nm + L) * (1 + L)
+// URL https://www.indexdatabase.de/db/si-single.php?sensor_id=96&rsindex_id=87
+function setup() {
+   return {
+      input: ["B04", "B08", "dataMask"],
+      output: { bands: 4 }
+   };
+}
+
+let L = 0.428; // L = soil brightness correction factor could range from (0 -1)
+
+const ramp = [
+   [-0.5, 0x0c0c0c],
+   [-0.2, 0xbfbfbf],
+   [-0.1, 0xdbdbdb],
+   [0, 0xeaeaea],
+   [0.025, 0xfff9cc],
+   [0.05, 0xede8b5],
+   [0.075, 0xddd89b],
+   [0.1, 0xccc682],
+   [0.125, 0xbcb76b],
+   [0.15, 0xafc160],
+   [0.175, 0xa3cc59],
+   [0.2, 0x91bf51],
+   [0.25, 0x7fb247],
+   [0.3, 0x70a33f],
+   [0.35, 0x609635],
+   [0.4, 0x4f892d],
+   [0.45, 0x3f7c23],
+   [0.5, 0x306d1c],
+   [0.55, 0x216011],
+   [0.6, 0x0f540a],
+   [1, 0x004400],
+];
+
+const visualizer = new ColorRampVisualizer(ramp);
+
+function evaluatePixel(samples) {
+   const index = (samples.B08 - samples.B04) / (samples.B08 + samples.B04 + L) * (1.0 + L);
+   let imgVals = visualizer.process(index);
+   return imgVals.concat(samples.dataMask)
+}
+
+
+
+
+msi
+
+// Simple Ratio 1600/820 Moisture Stress Index (abbrv. MSI)
+// General formula: 1600nm / 820nm
+// URL https://www.indexdatabase.de/db/si-single.php?sensor_id=96&rsindex_id=48
+
+let index = B11 / B08;
+return[index]

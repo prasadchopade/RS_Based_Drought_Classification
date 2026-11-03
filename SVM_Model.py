@@ -1,4 +1,5 @@
 import os
+import joblib
 from PIL import Image
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -17,7 +18,7 @@ for label in classes:
     class_path = os.path.join(dataset_path, label)
     for image_file in os.listdir(class_path):
         img_path = os.path.join(class_path, image_file)
-        img = Image.open(img_path)
+        img = Image.open(img_path).convert('RGB')
         img = img.resize((512, 512))
         img_array = np.array(img)
 
@@ -52,3 +53,6 @@ print(f"Test Accuracy: {accuracy}")
 print(f"Test Precision: {precision}")
 print(f"Test Recall: {recall}")
 print(f"Test F1 Score: {f1}")
+
+joblib.dump(svm, 'svm_model.pkl')
+print("Model saved to svm_model.pkl")

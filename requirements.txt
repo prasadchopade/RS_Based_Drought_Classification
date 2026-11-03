@@ -1,9 +1,22 @@
-streamlit
-numpy
-joblib
-pillow
-requests-oauthlib
-oauthlib
-gdown
-scikit-learn
+# Streamlit app and SVM training
+streamlit==1.66.1
+numpy==2.5.4
+joblib==1.6.0
+pillow==13.0.0
+requests-oauthlib==2.0.0
+oauthlib==4.0.1
+gdown==6.5.1
+scikit-learn==1.9.1
 
+# Notebook
+pandas==3.1.0
+matplotlib==3.11.2
+seaborn==0.13.2
+
+# Terminal pipeline
+xarray==2026.9.0
+netCDF4==1.7.5.1.post1
+rasterio==1.5.2
+
+# Tests
+pytest==9.2.0

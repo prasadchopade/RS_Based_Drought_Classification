@@ -5,39 +5,63 @@ from PIL import Image
 from datetime import datetime
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
+import hashlib
 import os
 import gdown
-import joblib
+
+from drought.validation import parse_coordinates
 
 file_id = '1JoopMIFsidHcin5CXUTjmPDTc8ekkuDJ'
 # Destination path for the downloaded model
 output = 'svm_model.pkl'
+# Loading a pickle can run code, so set this to reject a model file that has changed
+expected_sha256 = os.environ.get('MODEL_SHA256', '')
 
-# Check if the file already exists to avoid redownloading
-if not os.path.exists(output):
-    # Download the file
-    gdown.download(f'https://drive.google.com/uc?id={file_id}', output, quiet=False)
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+# Cached so the model isn't reloaded every time the page reruns
+@st.cache_resource
+def load_model():
+    # Check if the file already exists to avoid redownloading
+    if not os.path.exists(output):
+        gdown.download(f'https://drive.google.com/uc?id={file_id}', output, quiet=False)
+    if expected_sha256 and file_sha256(output) != expected_sha256:
+        raise ValueError(f"{output} does not match MODEL_SHA256")
+    return joblib.load(output)
+
 
 # Load the model with error handling
 try:
-    model = joblib.load(output)
+    model = load_model()
     st.success("Model loaded successfully!")
 except Exception as e:
     st.error(f"Error loading model: {e}")
-    model = None  # Set model to None if loading fails
-
-
-
+    st.stop()
 
 
 # Function to preprocess the image before making predictions
 def preprocess_image(image):
-    img = Image.open(image)
-    img = img.resize((512, 512))  
+    # Force 3 channels, RGBA or grayscale images wouldn't match what the model expects
+    img = Image.open(image).convert('RGB')
+    img = img.resize((512, 512))
     img_array = np.array(img)
-    img_normalized = img_array / 255.0  
-    img_flattened = img_normalized.flatten()  
+    img_normalized = img_array / 255.0
+    img_flattened = img_normalized.flatten()
     return img_flattened
+
+
+def predict_drought(image):
+    processed_image = preprocess_image(image).reshape(1, -1)
+    prediction = model.predict(processed_image)
+    labels = {0: 'No Drought', 1: 'Mild Drought', 2: 'Strong Drought'}
+    return labels[prediction[0]]
 
 
 def fetch_ndvi_image(client_id, client_secret, coordinates, start_date, end_date):
@@ -147,11 +171,11 @@ option = st.radio("Choose input method:", ('Upload Image', 'Use Coordinates'))
 if option == 'Upload Image':
     uploaded_file = st.file_uploader("Choose an NDVI image...", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
-        st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
-        processed_image = preprocess_image(uploaded_file).reshape(1, -1)
-        prediction = model.predict(processed_image)
-        labels = {0: 'No Drought', 1: 'Mild Drought', 2: 'Strong Drought'}
-        st.write(f"Prediction: **{labels[prediction[0]]}**")
+        try:
+            st.image(uploaded_file, caption='Uploaded Image', width='stretch')
+            st.write(f"Prediction: **{predict_drought(uploaded_file)}**")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 elif option == 'Use Coordinates':
     client_id = os.environ.get('COPERNICUS_CLIENT_ID', '')
@@ -166,13 +190,14 @@ elif option == 'Use Coordinates':
 
     if st.button("Retrieve Image"):
         try:
-            coordinates = eval(coordinates_input)  # Convert string to list
+            coordinates = parse_coordinates(coordinates_input)
+            if end_date < start_date:
+                raise ValueError("End Date can't be before Start Date.")
+            if not client_id or not client_secret:
+                raise ValueError("Set COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to retrieve images.")
             image_path = fetch_ndvi_image(client_id, client_secret, coordinates, start_date_iso, end_date_iso)
             if image_path:
-                st.image(image_path, caption='Retrieved NDVI Image', use_column_width=True)
-                processed_image = preprocess_image(image_path).reshape(1, -1)
-                prediction = model.predict(processed_image)
-                labels = {0: 'No Drought', 1: 'Mild Drought', 2: 'Strong Drought'}
-                st.write(f"Prediction: **{labels[prediction[0]]}**")
+                st.image(image_path, caption='Retrieved NDVI Image', width='stretch')
+                st.write(f"Prediction: **{predict_drought(image_path)}**")
         except Exception as e:
             st.error(f"Error: {e}")

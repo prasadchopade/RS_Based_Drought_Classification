@@ -3,7 +3,10 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 .ipynb_checkpoints/
+.pytest_cache/
 svm_model.pkl
 retrieved_ndvi_image.png
 dataset.zip
 NDVI/
+out/
+task/

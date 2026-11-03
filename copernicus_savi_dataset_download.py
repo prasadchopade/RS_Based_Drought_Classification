@@ -3,9 +3,9 @@ from requests_oauthlib import OAuth2Session
 from datetime import datetime, timedelta
 import os
 
-# Your client credentials
-client_id = ''
-client_secret = ''
+# Your client credentials, read from the environment so they stay out of the code
+client_id = os.environ['COPERNICUS_CLIENT_ID']
+client_secret = os.environ['COPERNICUS_CLIENT_SECRET']
 
 # Create a session
 client = BackendApplicationClient(client_id=client_id)
@@ -18,12 +18,12 @@ token = oauth.fetch_token(
     include_client_id=True
 )
 
-# Define the polygon coordinates for Andhra Pradesh region
+# Define the polygon coordinates for the Rajasthan region
 polygon_coordinates = [
   [71.0, 26.5], [71.0, 26.9], [71.5, 26.9], [71.5, 26.5], [71.0, 26.5]
 ]
 
-# Create directory for Andhra Pradesh
+# Create directory for Rajasthan
 output_dir = "rajasthan_savi"
 os.makedirs(output_dir, exist_ok=True)
 
@@ -94,14 +94,14 @@ function isCloud(samples) {
 }
 """
 
-# Loop through each month from 2014 to 2023
+# Loop through each month from 2018 to 2023
 start_date = datetime(2018, 1, 1)
 end_date = datetime(2023, 12, 31)
 
 current_date = start_date
 while current_date <= end_date:
     # Define the time range for the current month
-    next_month = current_date + timedelta(days=30)
+    next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
     time_range_from = current_date.strftime('%Y-%m-%dT%H:%M:%SZ')
     time_range_to = next_month.strftime('%Y-%m-%dT%H:%M:%SZ')
 
@@ -158,4 +158,4 @@ while current_date <= end_date:
         print(f"Failed for {current_date.strftime('%B %Y')} with status code: {response.status_code}")
 
     # Move to the next month
-    current_date = next_month
+    current_date = next_month

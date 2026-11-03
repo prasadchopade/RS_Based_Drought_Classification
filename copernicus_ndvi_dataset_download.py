@@ -4,10 +4,11 @@
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from datetime import datetime, timedelta
+import os
 
-# Your client credentials
-client_id = ''
-client_secret = ''
+# Your client credentials, read from the environment so they stay out of the code
+client_id = os.environ['COPERNICUS_CLIENT_ID']
+client_secret = os.environ['COPERNICUS_CLIENT_SECRET']
 
 # Create a session
 client = BackendApplicationClient(client_id=client_id)
@@ -68,12 +69,14 @@ regions = {
     'Telangana': [[78.0, 16.0], [78.0, 19.0], [81.0, 19.0], [81.0, 16.0], [78.0, 16.0]]
 }
 
+url = "https://sh.dataspace.copernicus.eu/api/v1/process"
+
 # Loop through regions and process each one
 for region_name, polygon_coordinates in regions.items():
     current_date = datetime(2018, 1, 1)
     end_date = datetime(2023, 12, 31)
     while current_date <= end_date:
-        next_month = current_date + timedelta(days=30)
+        next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
         time_range_from = current_date.strftime('%Y-%m-%dT%H:%M:%SZ')
         time_range_to = next_month.strftime('%Y-%m-%dT%H:%M:%SZ')
 

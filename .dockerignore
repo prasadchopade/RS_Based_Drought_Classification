@@ -1,0 +1,8 @@
+.git
+.github
+out
+__pycache__
+.pytest_cache
+svm_model.pkl
+dataset.zip
+NDVI
